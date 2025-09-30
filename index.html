@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแสดงผลงาน | Portfolio System</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="loading-spinner" class="loading-overlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+    
+    <div class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#" onclick="location.reload()"><i class="bi bi-collection-fill me-2"></i> Portfolio System</a>
+            <div id="auth-section">
+                <button class="btn btn-primary" id="login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <i class="bi bi-person-circle me-1"></i> เข้าสู่ระบบ
+                </button>
+                <div id="user-menu" class="d-none">
+                    <span id="welcome-user" class="me-3"></span>
+                    <button class="btn btn-outline-secondary" id="admin-panel-btn">
+                        <i class="bi bi-gear-fill me-1"></i> จัดการระบบ
+                    </button>
+                    <button class="btn btn-danger" id="logout-btn">
+                        <i class="bi bi-box-arrow-right me-1"></i> ออกจากระบบ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container my-4">
+        <div id="home-view">
+            <section id="dashboard" class="row g-3 mb-4"></section>
+            
+            <section class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-lg-7">
+                            <div id="filters" class="d-flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="search-input" class="form-control" placeholder="ค้นหาชื่อผลงาน...">
+                            </div>
+                        </div>
+                        <div class="col-lg-1 text-end">
+                            <div id="view-toggle" class="btn-group">
+                                <button class="btn btn-outline-secondary active" id="grid-view-btn"><i class="bi bi-grid-3x3-gap-fill"></i></button>
+                                <button class="btn btn-outline-secondary" id="table-view-btn"><i class="bi bi-table"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="works-display"></section>
+            <div id="no-results" class="text-center py-5 d-none">
+                <i class="bi bi-journal-x fs-1 text-muted"></i>
+                <h4 class="mt-3">ไม่พบผลงาน</h4>
+                <p class="text-muted">ไม่พบผลงานที่ตรงกับเงื่อนไขการค้นหาของคุณ</p>
+            </div>
+        </div>
+
+        <div id="details-view" class="d-none"></div>
+
+        <div id="admin-view" class="d-none">
+            <h2 class="mb-4">หน้าจัดการระบบ (Admin)</h2>
+            <ul class="nav nav-tabs" id="adminTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="manage-works-tab" data-bs-toggle="tab" data-bs-target="#manage-works" type="button" role="tab">จัดการผลงาน</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="manage-users-tab" data-bs-toggle="tab" data-bs-target="#manage-users" type="button" role="tab">จัดการผู้ใช้งาน</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="adminTabContent">
+                <div class="tab-pane fade show active" id="manage-works" role="tabpanel">
+                    <div class="d-flex justify-content-end my-3">
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#workModal" onclick="prepareWorkModal()"><i class="bi bi-plus-circle me-1"></i> เพิ่มผลงานใหม่</button>
+                    </div>
+                    <div class="table-responsive" id="admin-works-table"></div>
+                </div>
+                <div class="tab-pane fade" id="manage-users" role="tabpanel">
+                     <div class="d-flex justify-content-end my-3">
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#userModal" onclick="prepareUserModal()"><i class="bi bi-person-plus-fill me-1"></i> เพิ่มผู้ใช้ใหม่</button>
+                    </div>
+                    <div class="table-responsive" id="admin-users-table"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="teacher-view" class="d-none">
+            <h2 class="mb-4">หน้าจัดการข้อมูล (Teacher)</h2>
+             <ul class="nav nav-tabs" id="teacherTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="teacher-manage-works-tab" data-bs-toggle="tab" data-bs-target="#teacher-manage-works" type="button" role="tab">จัดการผลงาน</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="edit-profile-tab" data-bs-toggle="tab" data-bs-target="#edit-profile" type="button" role="tab">แก้ไขข้อมูลส่วนตัว</button>
+                </li>
+            </ul>
+            <div class="tab-content" id="teacherTabContent">
+                 <div class="tab-pane fade show active" id="teacher-manage-works" role="tabpanel">
+                     <div class="d-flex justify-content-end my-3">
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#workModal" onclick="prepareWorkModal()"><i class="bi bi-plus-circle me-1"></i> เพิ่มผลงานใหม่</button>
+                    </div>
+                    <div class="table-responsive" id="teacher-works-table"></div>
+                 </div>
+                 <div class="tab-pane fade" id="edit-profile" role="tabpanel">
+                    <div class="row justify-content-center mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">แก้ไขข้อมูลส่วนตัว</h5>
+                                    <form id="profile-form">
+                                        <div class="mb-3">
+                                            <label for="profile-fullName" class="form-label">ชื่อ-นามสกุล</label>
+                                            <input type="text" class="form-control" id="profile-fullName" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="profile-username" class="form-label">Username</label>
+                                            <input type="text" class="form-control" id="profile-username" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="profile-password" class="form-label">รหัสผ่านใหม่ (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</label>
+                                            <input type="password" class="form-control" id="profile-password">
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">บันทึกการเปลี่ยนแปลง</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">เข้าสู่ระบบ Admin/Teacher</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="login-form">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="user-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userModalLabel">เพิ่ม/แก้ไขผู้ใช้งาน</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label for="user-fullName" class="form-label">ชื่อ-นามสกุล</label>
+                            <input type="text" class="form-control" id="user-fullName" required>
+                        </div>
+                         <div class="mb-3">
+                            <label for="user-username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="user-username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="user-password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="user-password">
+                            <div class="form-text">เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่านเดิม</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="user-role" class="form-label">Role</label>
+                            <select class="form-select" id="user-role" required>
+                                <option value="teacher">Teacher</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="workModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="work-form">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="workModalLabel">เพิ่ม/แก้ไขผลงาน</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="workId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="work-author" class="form-label">ชื่อ-สกุล เจ้าของผลงาน</label>
+                                <input type="text" class="form-control" id="work-author" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="work-title" class="form-label">ชื่อผลงาน</label>
+                                <input type="text" class="form-control" id="work-title" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                             <label for="work-category" class="form-label">ประเภท</label>
+                            <select class="form-select" id="work-category" required>
+                                <option value="ผู้บริหาร">ผู้บริหาร</option>
+                                <option value="ครูและบุคลากร">ครูและบุคลากร</option>
+                                <option value="นักเรียน">นักเรียน</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="work-description" class="form-label">คำอธิบายผลงาน</label>
+                            <textarea class="form-control" id="work-description" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="work-cover" class="form-label">รูปภาพหน้าปก</label>
+                                <input type="file" class="form-control" id="work-cover" accept="image/*">
+                                <img id="cover-preview" class="img-thumbnail mt-2" style="max-height: 150px; display: none;">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="work-album" class="form-label">อัลบั้มรูปภาพ (เลือกได้หลายรูป)</label>
+                                <input type="file" class="form-control" id="work-album" accept="image/*" multiple>
+                            </div>
+                        </div>
+                        <div id="upload-progress-container"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-transparent border-0">
+          <div class="modal-body p-0 text-center">
+             <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 fs-3" data-bs-dismiss="modal" aria-label="Close"></button>
+            <img id="previewImage" src="" class="img-fluid" style="max-height: 90vh;">
+            <button class="carousel-control-prev" id="prevImageBtn" type="button">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" id="nextImageBtn" type="button">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="script.js"></script>
+</body>
+</html>
