@@ -1,0 +1,149 @@
+/* --- Google Font Import --- */
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
+
+/* --- Custom Variables & Theme Colors --- */
+:root {
+    --theme-primary: #26A69A;
+    --theme-secondary: #AED581;
+    --theme-warning: #FFCA28;
+    --theme-danger: #FF8A65;
+    --theme-dark-danger: #EF5350;
+    --theme-font: 'Kanit', sans-serif;
+    --theme-gradient-1: linear-gradient(45deg, #26A69A, #57c7b9);
+    --theme-gradient-2: linear-gradient(45deg, #AED581, #c5e0a4);
+    --theme-gradient-3: linear-gradient(45deg, #FFCA28, #ffd55a);
+    --theme-gradient-4: linear-gradient(45deg, #FF8A65, #ff9f84);
+}
+
+/* --- Base Styles --- */
+body {
+    font-family: var(--theme-font);
+    background-color: #f8f9fa;
+}
+
+/* --- Bootstrap Overrides --- */
+.btn-primary { background-color: var(--theme-primary); border-color: var(--theme-primary); }
+.btn-primary:hover { background-color: #208b7f; border-color: #208b7f; }
+.spinner-border.text-primary { color: var(--theme-primary) !important; }
+.nav-tabs .nav-link.active { color: var(--theme-primary); border-color: var(--theme-primary) var(--theme-primary) #fff; }
+.nav-tabs .nav-link { color: #6c757d; }
+
+/* --- Loading Spinner --- */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    z-index: 1060; /* Higher than modal */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.loading-overlay.show {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* --- Dashboard --- */
+.dashboard-card {
+    color: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+}
+.dashboard-card .icon { font-size: 2.5rem; opacity: 0.5; }
+.dashboard-card .stat-number { font-size: 2rem; font-weight: 600; }
+.dashboard-card .stat-title { font-size: 1rem; }
+
+/* --- Filters --- */
+.filter-badge {
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    color: white !important;
+    border: 2px solid transparent;
+}
+.filter-badge:hover, .filter-badge.active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border: 2px solid white;
+}
+
+/* --- Work Card (Grid View) --- */
+.work-card {
+    transition: all 0.3s ease;
+    border: 0;
+    border-radius: 0.75rem;
+}
+.work-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+.work-card .card-img-top {
+    height: 200px;
+    object-fit: cover;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+}
+.work-card .card-body { padding: 1rem; }
+.work-card .card-title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.work-card .card-author {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+.work-card .card-footer {
+    background-color: #fff;
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+}
+.work-card .card-footer .btn-icon {
+    font-size: 1.1rem;
+    color: #6c757d;
+    cursor: pointer;
+}
+.work-card .card-footer .btn-icon:hover { color: var(--theme-primary); }
+.work-card .card-footer .star-rating .bi-star-fill { color: var(--theme-warning); }
+.work-card .card-footer .bi-heart-fill { color: var(--theme-dark-danger); }
+
+
+/* --- Category Badges Colors --- */
+.badge.bg-category-ผู้บริหาร { background-image: var(--theme-gradient-1); }
+.badge.bg-category-ครูและบุคลากร { background-image: var(--theme-gradient-2); }
+.badge.bg-category-นักเรียน { background-image: var(--theme-gradient-3); }
+
+/* --- Details View --- */
+#details-view .details-cover-img {
+    width: 100%;
+    max-height: 450px;
+    object-fit: cover;
+    border-radius: 0.75rem;
+}
+#details-view .album-img {
+    cursor: pointer;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    transition: opacity 0.2s ease;
+}
+#details-view .album-img:hover { opacity: 0.8; }
+
+/* Image Preview Modal */
+#imagePreviewModal .modal-content {
+    background-color: rgba(0,0,0,0.8);
+}
+#imagePreviewModal .carousel-control-prev, #imagePreviewModal .carousel-control-next {
+    width: 5%;
+}
