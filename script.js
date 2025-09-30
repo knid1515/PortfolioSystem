@@ -1,6 +1,9 @@
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     
+    // --- CONFIGURATION ---
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVhUMjI-Om1c5xN56xZYMnWC6l_bj9AKcY-CrVW4DeIhvyYZro0pc3BURf4UZnsgVJ/exec';
+
     // --- STATE MANAGEMENT ---
     let users = [];
     let works = [];
@@ -69,34 +72,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
 
-    const saveData = () => {
-        localStorage.setItem('portfolio_users', JSON.stringify(users));
-        localStorage.setItem('portfolio_works', JSON.stringify(works));
-    };
-
-    const loadData = () => {
-        users = JSON.parse(localStorage.getItem('portfolio_users')) || [];
-        works = JSON.parse(localStorage.getItem('portfolio_works')) || [];
-        currentUser = JSON.parse(sessionStorage.getItem('portfolio_currentUser'));
-
-        // Create default admin if no users exist
-        if (users.length === 0) {
-            users.push({
-                id: generateId(),
-                fullName: 'ผู้ดูแลระบบ',
-                username: 'admin',
-                password: '123', // In a real app, hash this!
-                role: 'admin'
-            });
-            showToast('สร้างบัญชีผู้ดูแลระบบเริ่มต้น (admin/123)', 'success');
-            saveData();
-        }
-    };
-    
     const showView = (viewName) => {
         [homeView, detailsView, adminView, teacherView].forEach(v => v.classList.add('d-none'));
         document.getElementById(`${viewName}-view`).classList.remove('d-none');
         window.scrollTo(0, 0);
+    };
+
+    // --- DATA FUNCTIONS (NEW - Google Sheets Integration) ---
+    
+    const saveData = async () => {
+        showLoading();
+        try {
+            // Apps Script requires a specific format for POST requests when using fetch from a browser.
+            // Using 'no-cors' mode means we won't get a response back, but the request will go through.
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Important for this type of deployment
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ action: 'save', users, works }),
+            });
+            console.log('Save operation sent to Google Sheet.');
+        } catch (error) {
+            showToast('เชื่อมต่อเพื่อบันทึกข้อมูลล้มเหลว', 'error');
+            console.error('Save Fetch error:', error);
+        } finally {
+            // We don't wait for a response, so we can hide loading immediately.
+            // This is an "optimistic update".
+            hideLoading();
+        }
+    };
+
+    const loadData = async () => {
+        showLoading();
+        try {
+            const response = await fetch(`${SCRIPT_URL}?action=load`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                 users = data.users || [];
+                 works = data.works || [];
+            } else {
+                 throw new Error(data.message || 'Failed to load data from sheet.');
+            }
+        } catch (error) {
+            console.error('Load data error:', error);
+            showToast('เชื่อมต่อฐานข้อมูลล้มเหลว', 'error');
+            users = [];
+            works = [];
+        } finally {
+            // Create default admin if no users exist in the sheet
+            if (users.length === 0) {
+                users.push({
+                    id: generateId(),
+                    fullName: 'ผู้ดูแลระบบ',
+                    username: 'admin',
+                    password: '123',
+                    role: 'admin'
+                });
+                showToast('สร้างบัญชีผู้ดูแลระบบเริ่มต้น (admin/123)', 'success');
+                await saveData(); // Save the new admin back to the sheet
+            }
+            currentUser = JSON.parse(sessionStorage.getItem('portfolio_currentUser'));
+            hideLoading();
+        }
     };
 
     // --- RENDER FUNCTIONS ---
@@ -253,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    const renderDetails = (workId) => {
+    const renderDetails = async (workId) => {
         const work = works.find(w => w.id === workId);
         if (!work) {
             showView('home');
@@ -261,9 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Increment views
+        // Increment views and save
         work.views++;
-        saveData();
+        await saveData();
 
         const avgRating = work.ratings.length ? (work.ratings.reduce((acc, r) => acc + r.score, 0) / work.ratings.length).toFixed(1) : '0.0';
         const userLiked = currentUser && work.likes.includes(currentUser.id);
@@ -425,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showView('home');
     };
     
-    const handleUserFormSubmit = (e) => {
+    const handleUserFormSubmit = async (e) => {
         e.preventDefault();
         const id = document.getElementById('userId').value;
         const fullName = document.getElementById('user-fullName').value;
@@ -447,7 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
             users.push({ id: generateId(), fullName, username, password, role });
         }
         
-        saveData();
+        await saveData();
         renderAdminUsers();
         userModal.hide();
         showToast('บันทึกข้อมูลผู้ใช้สำเร็จ');
@@ -522,8 +563,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        setTimeout(() => { // Simulate delay for user to see progress bar
-            saveData();
+        // Use a short delay before saving to allow UI to update progress bars
+        setTimeout(async () => {
+            await saveData();
             updateDashboardAndFilters();
             if (currentUser.role === 'admin') renderAdminWorks(works, 'admin-works-table');
             if (currentUser.role === 'teacher') renderAdminWorks(works.filter(w => w.userId === currentUser.id), 'teacher-works-table');
@@ -533,13 +575,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     };
 
-    const handleInteraction = (e) => {
+    const handleInteraction = async (e) => {
         const target = e.target;
         const workId = target.closest('[data-work-id]')?.dataset.workId;
         if (!workId) return;
 
         const work = works.find(w => w.id === workId);
         if(!work) return;
+
+        let needsSave = false;
 
         // Like button
         if(target.closest('.like-btn')) {
@@ -553,13 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 work.likes.push(currentUser.id);
             }
-            saveData();
-            updateUI(); // Re-render everything to update counts and icons
-            if(!homeView.classList.contains('d-none')) {
-                handleFilterAndSearch();
-            } else {
-                renderDetails(workId);
-            }
+            needsSave = true;
         }
 
         // Star rating
@@ -576,8 +614,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 work.ratings.push({ userId: currentUser.id, score: score });
             }
-            saveData();
             showToast(`คุณให้คะแนน ${score} ดาว`);
+            needsSave = true;
+        }
+
+        if (needsSave) {
+            await saveData();
+            // Re-render the specific view to reflect changes
             if(!homeView.classList.contains('d-none')) {
                 handleFilterAndSearch();
             } else {
@@ -612,9 +655,9 @@ document.addEventListener('DOMContentLoaded', () => {
         handleFilterAndSearch();
     };
 
-    const init = () => {
+    const init = async () => {
         showLoading();
-        loadData();
+        await loadData();
         updateDashboardAndFilters();
         updateUI();
         attachEventListeners();
@@ -707,10 +750,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     cancelButtonColor: '#3085d6',
                     confirmButtonText: 'ใช่, ลบเลย!',
                     cancelButtonText: 'ยกเลิก'
-                }).then((result) => {
+                }).then(async (result) => {
                     if (result.isConfirmed) {
                         users = users.filter(u => u.id !== userId);
-                        saveData();
+                        await saveData();
                         renderAdminUsers();
                         Swal.fire('ลบแล้ว!', 'ผู้ใช้ถูกลบเรียบร้อย', 'success');
                     }
@@ -736,10 +779,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     cancelButtonColor: '#3085d6',
                     confirmButtonText: 'ใช่, ลบเลย!',
                     cancelButtonText: 'ยกเลิก'
-                }).then((result) => {
+                }).then(async (result) => {
                     if (result.isConfirmed) {
                         works = works.filter(w => w.id !== workId);
-                        saveData();
+                        await saveData();
                         updateDashboardAndFilters();
                         handleFilterAndSearch(); // Update home view if visible
                         // Update admin/teacher view
@@ -841,7 +884,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    function handleProfileUpdate(e) {
+    async function handleProfileUpdate(e) {
         e.preventDefault();
         const userIndex = users.findIndex(u => u.id === currentUser.id);
         if (userIndex > -1) {
@@ -857,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser.username = users[userIndex].username;
             sessionStorage.setItem('portfolio_currentUser', JSON.stringify(currentUser));
             
-            saveData();
+            await saveData();
             updateUI();
             showToast('อัปเดตข้อมูลส่วนตัวสำเร็จ');
         } else {
